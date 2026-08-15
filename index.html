@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Express — AlexBuild</title>
+<style>
+  :root {
+    --ink: #1B2430;
+    --ink-light: #2B3A4C;
+    --paper: #F7F5F0;
+    --paper-card: #FFFFFF;
+    --line: #DAD5C8;
+    --amber: #C9821E;
+    --amber-light: #F2E2C4;
+    --good: #2F7A4F;
+    --good-bg: #E4F0E7;
+    --mid: #B0791A;
+    --mid-bg: #F5E9D2;
+    --bad: #B23A2E;
+    --bad-bg: #F5E1DE;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --serif: 'Newsreader', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    padding: 40px 20px 80px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  .masthead .brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .masthead .brand span { color: var(--amber); }
+  .masthead h1 {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 600;
+    margin: 4px 0 0;
+  }
+  .masthead .date {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-light);
+    text-align: right;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  input[type="url"] {
+    flex: 1;
+    height: 48px;
+    padding: 0 16px;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 14px;
+    background: var(--paper-card);
+    color: var(--ink);
+  }
+  input[type="url"]:focus { outline: 3px solid var(--amber-light); }
+  button.run {
+    height: 48px;
+    padding: 0 24px;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button.run:hover { background: var(--ink-light); }
+  button.run:disabled { opacity: 0.5; cursor: wait; }
+
+  .apikey-toggle {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-light);
+    cursor: pointer;
+    text-decoration: underline;
+    margin-bottom: 24px;
+    display: inline-block;
+  }
+  .apikey-box {
+    display: none;
+    margin-bottom: 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .apikey-box.show { display: block; }
+  .apikey-box input {
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-light);
+    padding: 20px 0;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    margin-right: 8px;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+  .error {
+    display: none;
+    background: var(--bad-bg);
+    border-left: 3px solid var(--bad);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--bad);
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .error.show { display: block; }
+
+  .report { display: none; margin-top: 24px; }
+  .report.show { display: block; }
+
+  .report-head {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-light);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .report-head .url { color: var(--ink); font-weight: 600; }
+
+  .scores {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .score-card {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .score-card .num {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .score-card .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-light);
+    margin-top: 8px;
+  }
+  .score-good .num { color: var(--good); }
+  .score-mid .num { color: var(--mid); }
+  .score-bad .num { color: var(--bad); }
+
+  .vitals {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .vital {
+    padding: 12px;
+    border-left: 3px solid var(--line);
+  }
+  .vital .v-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-light);
+    text-transform: uppercase;
+  }
+  .vital .v-value {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  h2.section {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  p.section-sub {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink-light);
+    margin: 0 0 16px;
+  }
+
+  .issue {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .issue .i-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .issue .i-desc {
+    font-size: 13px;
+    color: var(--ink-light);
+    line-height: 1.5;
+  }
+
+  .pitch {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 24px;
+    border-radius: 6px;
+    margin: 32px 0;
+  }
+  .pitch .p-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber-light);
+    margin-bottom: 10px;
+  }
+  .pitch p {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .actions button {
+    flex: 1;
+    height: 42px;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .actions button:hover { background: var(--amber-light); }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-light);
+    text-align: center;
+  }
+
+  @media print {
+    body { padding: 0; background: white; }
+    .input-row, .apikey-toggle, .apikey-box, .actions, .status { display: none !important; }
+  }
+
+  @media (max-width: 600px) {
+    .scores { grid-template-columns: repeat(2, 1fr); }
+    .vitals { grid-template-columns: repeat(2, 1fr); }
+    .masthead { flex-direction: column; align-items: flex-start; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <div class="brand">AlexBuild <span>/</span> audit express</div>
+      <h1>Diagnostic de site</h1>
+    </div>
+    <div class="date" id="today"></div>
+  </div>
+
+  <div class="input-row">
+    <input type="url" id="urlInput" placeholder="https://exemple-client.fr" />
+    <button class="run" id="runBtn">Lancer l'audit</button>
+  </div>
+  <div class="apikey-toggle" id="apiToggle">+ utiliser ma propre clé API Google (recommandé si le quota gratuit est atteint)</div>
+  <div class="apikey-box" id="apiBox">
+    Clé API PageSpeed Insights (facultatif, gratuite sur Google Cloud Console) :
+    <input type="text" id="apiKeyInput" placeholder="AIza..." />
+  </div>
+
+  <div class="status" id="status"><span class="dot"></span><span id="statusText">Analyse en cours…</span></div>
+  <div class="error" id="errorBox"></div>
+
+  <div class="report" id="report">
+    <div class="report-head">
+      <span>Site analysé : <span class="url" id="reportUrl"></span></span>
+      <span id="reportDevice">Mobile</span>
+    </div>
+
+    <div class="scores" id="scores"></div>
+
+    <h2 class="section">Cœur de performance</h2>
+    <p class="section-sub">Ce que Google mesure réellement pour classer un site.</p>
+    <div class="vitals" id="vitals"></div>
+
+    <div class="pitch">
+      <div class="p-label">Angle d'approche pour le client</div>
+      <p id="pitchText"></p>
+    </div>
+
+    <h2 class="section">Points à corriger</h2>
+    <p class="section-sub">Les problèmes les plus impactants détectés sur ce site.</p>
+    <div id="issues"></div>
+
+    <div class="actions">
+      <button onclick="window.print()">Imprimer / Exporter en PDF</button>
+      <button id="copyBtn">Copier le résumé</button>
+    </div>
+  </div>
+
+  <footer>Rapport généré via l'API Google PageSpeed Insights — AlexBuild · dev@alexbuild.fr</footer>
+</div>
+
+<script>
+document.getElementById('today').textContent = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const apiToggle = document.getElementById('apiToggle');
+const apiBox = document.getElementById('apiBox');
+apiToggle.addEventListener('click', () => {
+  apiBox.classList.toggle('show');
+});
+
+const runBtn = document.getElementById('runBtn');
+const urlInput = document.getElementById('urlInput');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const errorBox = document.getElementById('errorBox');
+const report = document.getElementById('report');
+
+const RELEVANT_AUDITS = [
+  'largest-contentful-paint', 'cumulative-layout-shift', 'total-blocking-time',
+  'render-blocking-resources', 'unused-css-rules', 'unused-javascript',
+  'uses-responsive-images', 'uses-optimized-images', 'viewport',
+  'image-alt', 'meta-description', 'document-title', 'color-contrast',
+  'tap-targets', 'font-display', 'uses-text-compression', 'server-response-time',
+  'link-text', 'crawlable-anchors', 'is-on-https'
+];
+
+function scoreClass(score) {
+  if (score >= 90) return 'score-good';
+  if (score >= 50) return 'score-mid';
+  return 'score-bad';
+}
+
+function fmtMs(v) {
+  if (v == null) return '—';
+  return v >= 1000 ? (v / 1000).toFixed(1) + ' s' : Math.round(v) + ' ms';
+}
+
+async function runAudit() {
+  const url = urlInput.value.trim();
+  if (!url) { urlInput.focus(); return; }
+  let finalUrl = url;
+  if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
+
+  runBtn.disabled = true;
+  errorBox.classList.remove('show');
+  report.classList.remove('show');
+  statusEl.classList.add('show');
+  statusText.textContent = 'Analyse en cours (30 à 60 secondes)…';
+
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  const categories = 'category=performance&category=seo&category=accessibility&category=best-practices';
+  let endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(finalUrl)}&${categories}&strategy=mobile&locale=fr`;
+  if (apiKey) endpoint += `&key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const res = await fetch(endpoint);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      const msg = errData && errData.error && errData.error.message ? errData.error.message : `Erreur HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    renderReport(finalUrl, data);
+  } catch (err) {
+    let msg = err.message || 'Une erreur est survenue.';
+    if (/quota|rate/i.test(msg)) {
+      msg += ' — le quota gratuit sans clé est vite atteint. Ajoute ta propre clé API Google (gratuite) via le lien au-dessus du bouton.';
+    }
+    errorBox.textContent = msg;
+    errorBox.classList.add('show');
+  } finally {
+    runBtn.disabled = false;
+    statusEl.classList.remove('show');
+  }
+}
+
+function renderReport(url, data) {
+  const lh = data.lighthouseResult;
+  const cats = lh.categories;
+  const audits = lh.audits;
+
+  document.getElementById('reportUrl').textContent = url;
+
+  const scoresEl = document.getElementById('scores');
+  const labels = [
+    ['performance', 'Performance'],
+    ['seo', 'SEO'],
+    ['accessibility', 'Accessibilité'],
+    ['best-practices', 'Bonnes pratiques']
+  ];
+  scoresEl.innerHTML = labels.map(([key, label]) => {
+    const score = cats[key] ? Math.round(cats[key].score * 100) : null;
+    if (score === null) return '';
+    return `<div class="score-card ${scoreClass(score)}"><div class="num">${score}</div><div class="label">${label}</div></div>`;
+  }).join('');
+
+  const vitalsEl = document.getElementById('vitals');
+  const vitalDefs = [
+    ['largest-contentful-paint', 'LCP (chargement)'],
+    ['cumulative-layout-shift', 'CLS (stabilité)'],
+    ['total-blocking-time', 'TBT (réactivité)'],
+    ['first-contentful-paint', 'FCP (premier affichage)']
+  ];
+  vitalsEl.innerHTML = vitalDefs.map(([key, label]) => {
+    const a = audits[key];
+    const val = a ? a.displayValue : '—';
+    return `<div class="vital"><div class="v-label">${label}</div><div class="v-value">${val || '—'}</div></div>`;
+  }).join('');
+
+  const perfScore = cats.performance ? Math.round(cats.performance.score * 100) : null;
+  const seoScore = cats.seo ? Math.round(cats.seo.score * 100) : null;
+  const a11yScore = cats.accessibility ? Math.round(cats.accessibility.score * 100) : null;
+  const pitchEl = document.getElementById('pitchText');
+  let pitch;
+  if (perfScore !== null && perfScore < 50) {
+    pitch = `Ce site charge lentement sur mobile (score de performance : ${perfScore}/100). Chaque seconde de chargement en plus fait fuir une partie des visiteurs avant même qu'ils voient le contenu — c'est du chiffre d'affaires perdu chaque jour.`;
+  } else if (seoScore !== null && seoScore < 80) {
+    pitch = `Le référencement de ce site a des lacunes (score SEO : ${seoScore}/100). Ça veut dire que le site est probablement moins bien classé sur Google que ce qu'il pourrait être — donc moins de visiteurs qui trouvent l'entreprise en cherchant.`;
+  } else if (a11yScore !== null && a11yScore < 80) {
+    pitch = `Le site présente des problèmes d'accessibilité (score : ${a11yScore}/100), ce qui peut exclure une partie des visiteurs et nuire au référencement.`;
+  } else if (perfScore !== null && perfScore < 90) {
+    pitch = `Le site est correct mais pas optimal (performance : ${perfScore}/100). Quelques ajustements ciblés peuvent améliorer l'expérience et le classement Google.`;
+  } else {
+    pitch = `Le site est globalement solide sur les indicateurs techniques. L'angle ici est plutôt sur le contenu, la conversion ou le design plutôt que la technique pure.`;
+  }
+  pitchEl.textContent = pitch;
+
+  const issuesEl = document.getElementById('issues');
+  const found = RELEVANT_AUDITS
+    .map(id => audits[id])
+    .filter(a => a && a.score !== null && a.score < 0.9 && a.title)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 6);
+
+  if (found.length === 0) {
+    issuesEl.innerHTML = '<p style="font-size:13px;color:var(--ink-light);">Aucun problème majeur détecté sur les critères techniques standards.</p>';
+  } else {
+    issuesEl.innerHTML = found.map(a => `
+      <div class="issue">
+        <div class="i-title">${a.title}</div>
+        <div class="i-desc">${(a.description || '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')}</div>
+      </div>
+    `).join('');
+  }
+
+  report.classList.add('show');
+}
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const url = document.getElementById('reportUrl').textContent;
+  const scores = Array.from(document.querySelectorAll('.score-card')).map(c =>
+    c.querySelector('.label').textContent + ': ' + c.querySelector('.num').textContent
+  ).join(' · ');
+  const pitch = document.getElementById('pitchText').textContent;
+  const text = `Audit de ${url}\n${scores}\n\n${pitch}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copié !';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+});
+
+runBtn.addEventListener('click', runAudit);
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') runAudit(); });
+</script>
+</body>
+</html>

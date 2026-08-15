@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Express — AlexBuild</title>
+<link rel="stylesheet" href="styles.css?v=8">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <div class="brand">AlexBuild <span>/</span> audit express</div>
+      <h1>Prospection &amp; diagnostics</h1>
+    </div>
+    <div class="date" id="today"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-view="audit">Nouvel audit</button>
+    <button class="tab" data-view="history">Historique</button>
+  </div>
+
+  <!-- ===== Nouvel audit ===== -->
+  <div class="view active" id="view-audit">
+    <div class="input-row">
+      <label class="sr-only" for="urlInput">URL du site à auditer</label>
+      <input type="url" id="urlInput" placeholder="https://exemple-client.fr" required />
+      <button class="run" id="runBtn">Lancer l'audit</button>
+    </div>
+    <div class="form-fields">
+      <label class="sr-only" for="nameInput">Nom du prospect</label>
+      <input type="text" id="nameInput" class="optional" placeholder="Nom du prospect (facultatif)" />
+      <label class="sr-only" for="contactInput">Contact email ou téléphone</label>
+      <input type="text" id="contactInput" class="optional" placeholder="Contact email / tel (facultatif)" />
+      <label class="sr-only" for="competitorInput">Site concurrent à comparer</label>
+      <input type="url" id="competitorInput" class="optional" placeholder="Site concurrent à comparer (facultatif)" />
+    </div>
+    <div class="field-hint">Appuyez sur Entrée pour lancer. Clé API PageSpeed servie par le serveur (jamais dans le navigateur).</div>
+
+    <div class="status" id="status" aria-live="polite" role="status"><span class="dot"></span><span id="statusText">Analyse en cours…</span></div>
+    <div class="error" id="errorBox" role="alert"></div>
+
+    <div class="report" id="report">
+      <div class="report-head">
+        <span>Site analysé : <span class="url" id="reportUrl"></span></span>
+        <span id="reportDate"></span>
+      </div>
+      <div class="band">
+        <div class="band-zone">
+          <h2 class="band-title">Scores</h2>
+          <div class="scores" id="scores"></div>
+        </div>
+        <div class="band-zone">
+          <h2 class="band-title">Core Web Vitals</h2>
+          <p class="band-sub">Ce que Google mesure réellement pour classer un site.</p>
+          <div class="vitals" id="vitals"></div>
+          <div class="vital-legend"><span class="lg lg-good">Bon</span><span class="lg lg-mid">À améliorer</span><span class="lg lg-bad">Mauvais</span></div>
+        </div>
+      </div>
+
+      <div id="compareWrap"></div>
+
+      <div id="businessBrief"></div>
+
+      <div class="pitch">
+        <div class="p-label">Angle d'approche pour le client</div>
+        <p id="pitchText"></p>
+      </div>
+
+      <div id="summary"></div>
+
+      <details class="tech-detail" id="catWrap">
+        <summary><span class="td-title">Détail technique par domaine</span><span class="td-sub">réservé à l'analyse fine</span></summary>
+        <div class="td-content" id="categorySections"></div>
+      </details>
+
+      <div class="legacy-block">
+        <h2 class="section">Points à corriger</h2>
+        <p class="section-sub">Les problèmes les plus impactants détectés sur ce site.</p>
+        <div id="issues"></div>
+
+        <h2 class="section">Opportunités d'amélioration</h2>
+        <p class="section-sub">Les leviers techniques qui feront le plus gagner — classés par impact.</p>
+        <div id="opportunities"></div>
+      </div>
+
+      <h2 class="section">Contenu · Conversion · Design</h2>
+      <p class="section-sub">Vérifications factuelles de la page pour préparer l'argumentaire commercial.</p>
+      <div id="contentCheck"></div>
+
+<div class="actions">
+        <button id="copyBtn">Copier le résumé</button>
+        <button id="emailBtn">Copier l'email client</button>
+        <button id="pdfBtn" class="primary">Exporter le rapport (PDF)</button>
+        <button id="saveBtn" class="primary">Enregistrer dans mes prospects</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="clientReport" aria-hidden="true"></div>
+
+  <!-- ===== Historique ===== -->
+  <div class="view" id="view-history">
+    <div class="error" id="historyErrorBox" role="alert"></div>
+    <div id="historyList"></div>
+    <div id="detail" style="display:none;">
+      <button class="back" id="backBtn">? Retour à la liste</button>
+      <div id="detailHead"></div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <footer>Rapport généré via l'API Google PageSpeed Insights — AlexBuild · dev@alexbuild.fr</footer>
+</div>
+
+<script src="report.js?v=8"></script>
+<script src="app.js?v=8"></script>
+</body>
+</html>
