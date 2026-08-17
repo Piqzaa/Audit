@@ -343,9 +343,6 @@ function buildCategorySections(cats, audits) {
   });
 }
 
-const MONTHLY_VISITS = 1000;
-const CONVERSION_RATE = 0.02;
-
 const FAMILY_MAP = {
   'vitesse-mobile': { id: 'vitesse-mobile', label: 'Vitesse & mobile', color: 'performance', catIds: ['performance', 'mobile'] },
   'visibilite': { id: 'visibilite', label: 'Référencement technique', color: 'seo', catIds: ['seo-technique'] },
@@ -364,26 +361,17 @@ function familyScore(issues) {
   return Math.round(issues.reduce((s, i) => s + (i.score || 0), 0) / issues.length);
 }
 
-function lostLeadsEstimate({ performance, vitals = {} }) {
+function buildLeadRisk({ performance, vitals = {} }) {
   const lcpSec = parseFloat(String(vitals.lcp || '').replace(',', '.'));
-  let lostRate = 0.05;
-  if (!Number.isNaN(lcpSec)) {
-    if (lcpSec >= 4) lostRate = 0.4;
-    else if (lcpSec >= 2.5) lostRate = 0.2;
-    else lostRate = 0.05;
-  } else if (performance != null && performance < 50) {
-    lostRate = 0.3;
-  } else if (performance != null && performance < 80) {
-    lostRate = 0.15;
+  const verySlow = (performance != null && performance < 50) || (!Number.isNaN(lcpSec) && lcpSec >= 4);
+  if (!verySlow) {
+    return { enabled: false, level: 'none', message: '' };
   }
-  const estLost = Math.round(MONTHLY_VISITS * CONVERSION_RATE * lostRate);
-  return {
-    enabled: true,
-    monthlyVisits: MONTHLY_VISITS,
-    conversionRate: CONVERSION_RATE,
-    lostRate,
-    estLostPerMonth: estLost
-  };
+  const hasBadLcp = !Number.isNaN(lcpSec) && lcpSec >= 4;
+  const message = hasBadLcp
+    ? `Sur mobile, le contenu principal met environ ${formatSec(lcpSec * 1000)} à s'afficher. Une lenteur de cette ampleur décourage une partie des visiteurs avant même le premier contact — sans pouvoir chiffrer précisément l'impact, c'est un vrai risque pour la conversion.`
+    : `La page est nettement lente sur mobile (performance ${performance}/100). Au-delà d'un certain seuil, chaque seconde qui s'ajoute avant l'affichage éloigne une partie des prospects : c'est un risque pour les demandes reçues, même si l'ampleur est difficile à mesurer.`;
+  return { enabled: true, level: 'high', message };
 }
 
 function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {} }) {
@@ -395,7 +383,12 @@ function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {}
       const c = byId[cid];
       return (c && c.issues ? c.issues : []).map((i) => ({ ...i, score: c.score }));
     });
-    const score = familyScore(issues);
+    const catScores = fam.catIds
+      .map((cid) => byId[cid] && byId[cid].score)
+      .filter((s) => s != null);
+    const score = catScores.length
+      ? Math.round(catScores.reduce((a, b) => a + b, 0) / catScores.length)
+      : familyScore(issues);
     const note = noteFromScore(score);
     return {
       id: fam.id,
@@ -420,7 +413,7 @@ function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {}
   return {
     families,
     businessScore,
-    lostLeads: lostLeadsEstimate({ ...scores, vitals })
+    leadRisk: buildLeadRisk({ performance: scores.performance, vitals })
   };
 }
 

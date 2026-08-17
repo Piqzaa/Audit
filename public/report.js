@@ -168,7 +168,7 @@
     const scoreLabel = business.businessScore === 'eleve' ? 'Potentiel de progression élevé'
       : business.businessScore === 'moyen' ? 'Potentiel de progression modéré'
       : 'Peu de marge de progression';
-    const ll = business.lostLeads;
+    const risk = business.leadRisk;
 
     const famHtml = fams.map(f => {
       const top = f.topIssue ? `<div class="bf-top">${escapeHtml(f.topIssue.title)}</div>` : '';
@@ -179,8 +179,8 @@
       </div>`;
     }).join('');
 
-    const lostHtml = (ll && ll.enabled && ll.estLostPerMonth > 0)
-      ? `<div class="bf-lost"><span class="bf-lost-num">~${ll.estLostPerMonth}</span> leads potentiels par mois perdus liés à la lenteur mobile (estimation indicative)</div>`
+    const lostHtml = (risk && risk.enabled && risk.message)
+      ? `<div class="bf-lost"><span class="bf-lost-tag">Risque</span><span>${escapeHtml(risk.message)}</span></div>`
       : '';
 
     return `<section class="brief">
@@ -446,8 +446,9 @@
         ${top}
       </div>`;
     }).join('') + `</div>` : '';
-    const crLost = (biz.lostLeads && biz.lostLeads.enabled && biz.lostLeads.estLostPerMonth > 0)
-      ? `<p class="cr-lost"><b>~${biz.lostLeads.estLostPerMonth} leads potentiels par mois</b> perdus liés à la lenteur mobile (estimation indicative).</p>` : '';
+    const crRisk = biz.leadRisk;
+    const crLost = (crRisk && crRisk.enabled && crRisk.message)
+      ? `<p class="cr-lost"><b>Risque conversion</b> — ${escapeHtml(crRisk.message)}</p>` : '';
     const crBrief = ((famsHtml || crLost) ? `<section class="cr-brief"><div class="cr-stakes-label">En bref</div>${famsHtml}${crLost}</section>` : '');
 
     let findingsHtml = '';
