@@ -387,7 +387,7 @@
     return stakes.slice(0, 3);
   }
 
-  function buildClientReportHtml(audit) {
+  function buildClientReportHtml(audit, prospectName) {
     const scores = audit.scores || {};
     const vitals = audit.vitals || {};
     const opps = audit.opportunities || [];
@@ -470,6 +470,7 @@
         <section class="cr-title">
           <h1>Rapport d'audit</h1>
           <p>Site : <b>${escapeHtml(audit.url)}</b></p>
+          ${prospectName ? `<p>Préparé pour <b>${escapeHtml(prospectName)}</b></p>` : ''}
           <p class="cr-date">Audit réalisé le ${fmtAuditDate(audit)}</p>
         </section>
 
@@ -501,6 +502,11 @@
         ${oppsHtml}
 
         ${findingsHtml}
+
+        <div class="cr-cta">
+          <div class="cr-cta-label">Et après ?</div>
+          <p>Vous souhaitez aller plus loin ? Recevez un plan d'action détaillé — <b>AlexBuild · dev@alexbuild.fr</b></p>
+        </div>
 
         <div class="cr-disclaimer">Analyse automatisée basée sur les données disponibles au moment de l'audit.</div>
         <footer class="cr-foot">Rapport généré via l'API Google PageSpeed Insights — AlexBuild · dev@alexbuild.fr</footer>

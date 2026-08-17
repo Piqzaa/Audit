@@ -339,7 +339,8 @@ const det = $('detail');
   // --- Exporter le rapport client (impression → PDF) ---
   $('pdfBtn').addEventListener('click', () => {
     if (!lastAudit) return;
-    $('clientReport').innerHTML = window.Report.buildClientReportHtml(lastAudit);
+    const prospectName = $('nameInput').value.trim();
+    $('clientReport').innerHTML = window.Report.buildClientReportHtml(lastAudit, prospectName);
     window.print();
   });
 
