@@ -343,6 +343,9 @@ function buildCategorySections(cats, audits) {
   });
 }
 
+const MONTHLY_VISITS = 1000;
+const CONVERSION_RATE = 0.02;
+
 const FAMILY_MAP = {
   'vitesse-mobile': { id: 'vitesse-mobile', label: 'Vitesse & mobile', color: 'performance', catIds: ['performance', 'mobile'] },
   'visibilite': { id: 'visibilite', label: 'Référencement technique', color: 'seo', catIds: ['seo-technique'] },
@@ -361,17 +364,26 @@ function familyScore(issues) {
   return Math.round(issues.reduce((s, i) => s + (i.score || 0), 0) / issues.length);
 }
 
-function buildLeadRisk({ performance, vitals = {} }) {
+function lostLeadsEstimate({ performance, vitals = {} }) {
   const lcpSec = parseFloat(String(vitals.lcp || '').replace(',', '.'));
-  const verySlow = (performance != null && performance < 50) || (!Number.isNaN(lcpSec) && lcpSec >= 4);
-  if (!verySlow) {
-    return { enabled: false, level: 'none', message: '' };
+  let lostRate = 0.05;
+  if (!Number.isNaN(lcpSec)) {
+    if (lcpSec >= 4) lostRate = 0.4;
+    else if (lcpSec >= 2.5) lostRate = 0.2;
+    else lostRate = 0.05;
+  } else if (performance != null && performance < 50) {
+    lostRate = 0.3;
+  } else if (performance != null && performance < 80) {
+    lostRate = 0.15;
   }
-  const hasBadLcp = !Number.isNaN(lcpSec) && lcpSec >= 4;
-  const message = hasBadLcp
-    ? `Sur mobile, le contenu principal met environ ${formatSec(lcpSec * 1000)} à s'afficher. Une lenteur de cette ampleur décourage une partie des visiteurs avant même le premier contact — sans pouvoir chiffrer précisément l'impact, c'est un vrai risque pour la conversion.`
-    : `La page est nettement lente sur mobile (performance ${performance}/100). Au-delà d'un certain seuil, chaque seconde qui s'ajoute avant l'affichage éloigne une partie des prospects : c'est un risque pour les demandes reçues, même si l'ampleur est difficile à mesurer.`;
-  return { enabled: true, level: 'high', message };
+  const estLost = Math.round(MONTHLY_VISITS * CONVERSION_RATE * lostRate);
+  return {
+    enabled: true,
+    monthlyVisits: MONTHLY_VISITS,
+    conversionRate: CONVERSION_RATE,
+    lostRate,
+    estLostPerMonth: estLost
+  };
 }
 
 function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {} }) {
@@ -383,12 +395,7 @@ function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {}
       const c = byId[cid];
       return (c && c.issues ? c.issues : []).map((i) => ({ ...i, score: c.score }));
     });
-    const catScores = fam.catIds
-      .map((cid) => byId[cid] && byId[cid].score)
-      .filter((s) => s != null);
-    const score = catScores.length
-      ? Math.round(catScores.reduce((a, b) => a + b, 0) / catScores.length)
-      : familyScore(issues);
+    const score = familyScore(issues);
     const note = noteFromScore(score);
     return {
       id: fam.id,
@@ -413,7 +420,7 @@ function buildBusiness({ scores = {}, categories = [], vitals = {}, content = {}
   return {
     families,
     businessScore,
-    leadRisk: buildLeadRisk({ performance: scores.performance, vitals })
+    lostLeads: lostLeadsEstimate({ ...scores, vitals })
   };
 }
 
@@ -475,10 +482,10 @@ export function normalizeLighthouse(data) {
 
   const opportunities = extractOpportunities(cats, audits);
   const categories = buildCategorySections(cats, audits);
-  const business = buildBusiness({ scores, categories, vitals });
-  const pitch = buildPitch({ scores, vitals, business });
-  const impact = buildImpactText({ scores, vitals, business });
+  const pitch = buildPitch({ ...scores, vitals });
+  const impact = buildImpactText({ ...scores, vitals });
   const summary = buildSummary({ scores, vitals, categories, issues, opportunities });
+  const business = buildBusiness({ scores, categories, vitals });
 
   return {
     scores,
@@ -494,35 +501,17 @@ export function normalizeLighthouse(data) {
   };
 }
 
-function worstFamily(business) {
-  const fams = (business && Array.isArray(business.families)) ? business.families : [];
-  return fams.reduce((a, b) => (b.score != null && (a.score == null || b.score < a.score) ? b : a), { score: null });
-}
-
-export function buildPitch({ scores = {}, vitals = {}, business }) {
-  const perf = scores.performance != null ? scores.performance : null;
-  const seoS = scores.seo != null ? scores.seo : null;
-  const acc = scores.accessibility != null ? scores.accessibility : null;
+export function buildPitch({ performance, seo, accessibility, bestPractices, vitals = {} }) {
+  const perf = performance != null ? performance : null;
+  const seoS = seo != null ? seo : null;
+  const acc = accessibility != null ? accessibility : null;
   const lcp = vitals.lcp || null;
-  const worst = worstFamily(business);
-  const worstScore = worst ? worst.score : null;
-  const worstLabel = worst ? worst.label : null;
-  const worstTop = worst ? worst.topIssue : null;
 
-  if (worstScore != null && worstScore < 40) {
-    return `Point noir confirmé : ${worstLabel} est critique (${worstScore}/100).${worstTop ? ` Le point le plus visible : ${worstTop.title}.` : ''} Ce n'est pas un détail cosmétique — c'est ce qui freine directement les visiteurs et pèse sur la conversion. Priorité : attaquer ce point en premier, le reste suivra.`;
-  }
-  if (worstScore != null && worstScore < 60) {
-    return `${worstLabel} est nettement en retard (${worstScore}/100)${lcp ? `, contenu principal visible après ${lcp}` : ''}. Le site fonctionne, mais il laisse passer des prospects que des concurrents plus rapides ou mieux référencés récupèrent. Quelques optimisations ciblées peuvent le faire remonter vite.`;
-  }
-  if (worstScore != null && worstScore < 75) {
-    return `${worstLabel} est perfectible (${worstScore}/100). Le site est correct mais perd des points${lcp ? ` (LCP ${lcp})` : ''} sur un axe que Google et les visiteurs surveillent. Des optimisations ciblées peuvent faire la différence.`;
-  }
   if (perf !== null && perf < 50) {
-    return `Ce site charge lentement sur mobile : performance à ${perf}/100${lcp ? `, contenu principal visible après ${lcp}` : ''}. Au-delà d'un certain seuil, la lenteur fait fuir de vrais visiteurs avant le premier contact. Optimiser le poids des images et le cache est la priorité.`;
+    return `Ce site charge lentement sur mobile : score de performance à ${perf}/100${lcp ? `, contenu principal visible après ${lcp}` : ''}. Chaque seconde de plus fait fuir des visiteurs avant le premier contact — du chiffre d'affaires perdu chaque jour. Optimiser le poids des images et la gestion du cache est la priorité.`;
   }
   if (perf !== null && perf < 80) {
-    return `Le site est fluide au quotidien mais perd des points sur mobile (performance ${perf}/100${lcp ? `, LCP ${lcp}` : ''}). Google en tient compte dans le classement. Quelques optimisations ciblées (images, cache, JS inutilisé) peuvent le faire monter rapidement.`;
+    return `Le site est correct mais perd des points sur mobile (performance ${perf}/100${lcp ? `, LCP ${lcp}` : ''}). Google en tient compte dans le classement. Quelques optimisations ciblées (images, cache, JS inutilisé) peuvent le faire monter rapidement.`;
   }
   if (seoS !== null && seoS < 80) {
     return `Le référencement a des lacunes (SEO ${seoS}/100) : le site est probablement moins bien classé que ses concurrents sur Google. Hors optimisation technique et balisage, il manque surtout une vraie stratégie de mots-clés et de contenus pour attirer des demandes.`;
@@ -530,8 +519,8 @@ export function buildPitch({ scores = {}, vitals = {}, business }) {
   if (acc !== null && acc < 80) {
     return `Le site présente des problèmes d'accessibilité (${acc}/100), ce qui exclut certains visiteurs et peut peser sur le référencement. Les corriger améliore l'image de l'entreprise et la portée.`;
   }
-  if (scores.bestPractices != null && scores.bestPractices < 90) {
-    return `Sur le fond, le site est sain (bonnes pratiques ${scores.bestPractices}/100), mais quelques conformités (HTTPS, headers, APIs dépréciées) restent à fiabiliser pour asseoir la confiance et le référencement.`;
+  if (bestPractices !== null && bestPractices < 90) {
+    return `Sur le fond, le site est sain (bonnes pratiques ${bestPractices}/100), mais quelques conformités (HTTPS, headers, APIs dépréciées) restent à fiabiliser pour asseoir la confiance et le référencement.`;
   }
   if (perf !== null && perf < 90) {
     return `Le site est globalement bon (performance ${perf}/100) mais pas optimal. L'angle le plus rentable n'est plus la technique : c'est le contenu, la conversion et le design qui feront la différence face aux concurrents.`;
@@ -539,27 +528,19 @@ export function buildPitch({ scores = {}, vitals = {}, business }) {
   return `Techniquement, ce site est sain (performance ${perf != null ? `${perf}/100` : 'n.d.'}, SEO ${seoS != null ? `${seoS}/100` : 'n.d.'}). La vraie marge se situe sur le contenu, la conversion et le design : améliorer l'accroche, les appels à l'action et l'expérience mobile pour transformer plus de visiteurs en clients.`;
 }
 
-export function buildImpactText({ scores = {}, vitals = {}, business }) {
+export function buildImpactText({ performance, seo, accessibility, vitals = {} }) {
   const lcp = vitals.lcp || null;
-  const worst = worstFamily(business);
-  const worstScore = worst ? worst.score : null;
-  const worstLabel = worst ? worst.label : null;
-  const worstTop = worst ? worst.topIssue : null;
-
-  if (worstScore != null && worstScore < 60) {
-    return `Le principal frein concerne ${worstLabel}, noté ${worstScore}/100.${worstTop ? ` Le problème le plus visible : ${worstTop.title}. ` : ' '}C'est le point qui retient le plus les visiteurs, à traiter en priorité.`;
+  if (performance != null && performance < 80) {
+    return `Le principal frein identifié concerne les performances sur mobile (${performance}/100${lcp ? `, contenu principal visible après ${lcp}` : ''}). Réduire les ressources chargées avant l’affichage du contenu principal pourrait améliorer le temps d’affichage initial.`;
   }
-  if (scores.performance != null && scores.performance < 80) {
-    return `Le principal frein identifié concerne les performances sur mobile (${scores.performance}/100${lcp ? `, contenu principal visible après ${lcp}` : ''}). Réduire les ressources chargées avant l’affichage du contenu principal pourrait améliorer le temps d’affichage initial.`;
+  if (performance != null && performance < 90) {
+    return `La performance mobile reste un levier (${performance}/100), même si le site est correct. Une optimisation ciblée des éléments les plus lourds peut améliorer l’affichage initial.`;
   }
-  if (scores.performance != null && scores.performance < 90) {
-    return `La performance mobile reste un levier (${scores.performance}/100), même si le site est correct. Une optimisation ciblée des éléments les plus lourds peut améliorer l’affichage initial.`;
+  if (seo != null && seo < 80) {
+    return `Le principal frein identifié concerne le référencement (SEO ${seo}/100). Certaines pages du site sont peut-être moins bien visibles que celles des concurrents sur les recherches locales.`;
   }
-  if (scores.seo != null && scores.seo < 80) {
-    return `Le principal frein identifié concerne le référencement (SEO ${scores.seo}/100). Certaines pages du site sont peut-être moins bien visibles que celles des concurrents sur les recherches locales.`;
-  }
-  if (scores.accessibility != null && scores.accessibility < 80) {
-    return `Des points d’accessibilité (${scores.accessibility}/100) sont à corriger pour que le site reste lisible et navigable par tous les visiteurs.`;
+  if (accessibility != null && accessibility < 80) {
+    return `Des points d’accessibilité (${accessibility}/100) sont à corriger pour que le site reste lisible et navigable par tous les visiteurs.`;
   }
   return `Aucun frein technique majeur n’a été relevé pendant l’audit. Les différences se joueront surtout sur le contenu, la conversion et l’expérience mobile.`;
 }

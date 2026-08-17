@@ -1,7 +1,7 @@
 ﻿(function () {
   const SCORE_LABELS = [
     ['performance', 'Performance'],
-    ['seo', 'SEO'],
+    ['seo', 'SEO (Lighthouse)'],
     ['accessibility', 'Accessibilité'],
     ['bestPractices', 'Bonnes pratiques']
   ];
@@ -474,7 +474,7 @@
 
         <section class="cr-scores">
           ${scoreCard('Performance', scores.performance)}
-          ${scoreCard('SEO', scores.seo)}
+          ${scoreCard('SEO (Lighthouse)', scores.seo)}
           ${scoreCard('Accessibilité', scores.accessibility)}
           ${scoreCard('Bonnes pratiques', scores.bestPractices)}
         </section>
