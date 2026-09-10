@@ -70,7 +70,21 @@ router.post('/search', async (req, res, next) => {
     }
 
     const places = await searchPlaces({ categorie, ville });
-    const results = places.map(tagResult);
+    let results = places.map(tagResult);
+
+    results.sort((a, b) => {
+      if (a.tag === 'no-site' && b.tag !== 'no-site') return -1;
+      if (a.tag !== 'no-site' && b.tag === 'no-site') return 1;
+      if (a.tag === 'to-audit' && b.tag === 'to-audit') {
+        const scoreA = a.audit?.scores?.performance ?? 999;
+        const scoreB = b.audit?.scores?.performance ?? 999;
+        return scoreA - scoreB;
+      }
+      return 0;
+    });
+
+    const noSiteCount = results.filter((r) => r.tag === 'no-site').length;
+    const toAuditCount = results.filter((r) => r.tag === 'to-audit').length;
 
     const queueId = generateQueueId();
     const toAudit = results.filter((r) => r.tag === 'to-audit');
@@ -92,6 +106,7 @@ router.post('/search', async (req, res, next) => {
     res.json({
       results,
       auditQueueId: toAudit.length > 0 ? queueId : null,
+      counts: { noSite: noSiteCount, toAudit: toAuditCount, total: results.length },
     });
   } catch (err) {
     if (err.code === 'NO_KEY') return res.status(500).json({ error: err.message });
