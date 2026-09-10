@@ -378,6 +378,10 @@ const det = $('detail');
     const selectedCount = results.filter(r => r.selected).length;
     $('searchCount').textContent = `${total} résultat${total > 1 ? 's' : ''} · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}`;
 
+    $('countNoSite').textContent = noSite.length ? `(${noSite.length})` : '';
+    $('countBadScore').textContent = badScore.length ? `(${badScore.length})` : (pending.length ? '(audit en cours...)' : '');
+    $('countGoodScore').textContent = goodScore.length ? `(${goodScore.length})` : '';
+
     $('resultsNoSite').innerHTML = noSite.length
       ? noSite.map(r => resultCardHtml(r)).join('')
       : '<div class="empty">Aucun résultat</div>';

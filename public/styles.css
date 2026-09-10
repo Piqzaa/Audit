@@ -945,6 +945,7 @@ footer {
 .group-title.tag-no-site { background: #fee2e2; color: #991b1b; }
 .group-title.tag-bad-score { background: #fef3cd; color: #856404; }
 .group-title.tag-good-score { background: #d1fae5; color: #065f46; }
+.group-title span { font-weight: 400; font-size: 11px; opacity: 0.8; }
 
 .results-list { display: grid; gap: 8px; }
 
