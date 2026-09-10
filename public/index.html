@@ -111,22 +111,46 @@
         <label class="sr-only" for="searchCategorie">Catégorie</label>
         <select id="searchCategorie">
           <option value="">-- Catégorie --</option>
-          <option value="plombier">Plombier</option>
-          <option value="électricien">Électricien</option>
-          <option value="menuisier">Menuisier</option>
-          <option value="peintre en bâtiment">Peintre</option>
-          <option value="couvreur">Couvreur</option>
-          <option value="maçon">Maçon</option>
-          <option value="jardinier">Jardinier</option>
-          <option value="serrurier">Serrurier</option>
-          <option value="chauffagiste">Chauffagiste</option>
-          <option value="carreleur">Carreleur</option>
-          <option value="vitrailliste">Vitrailliste</option>
-          <option value="paysagiste">Paysagiste</option>
-          <option value="artisan">Autre artisan</option>
-          <option value="auto-entrepreneur">Auto-entrepreneur</option>
-          <option value="commerçant">Commerçant</option>
-          <option value="autre">Autre (préciser dans la recherche)</option>
+          <optgroup label="Artisans bâtiment">
+            <option value="plombier">Plombier</option>
+            <option value="électricien">Électricien</option>
+            <option value="menuisier">Menuisier</option>
+            <option value="peintre en bâtiment">Peintre</option>
+            <option value="couvreur">Couvreur</option>
+            <option value="maçon">Maçon</option>
+            <option value="carreleur">Carreleur</option>
+            <option value="vitrailliste">Vitrailliste</option>
+            <option value="serrurier">Serrurier</option>
+            <option value="chauffagiste">Chauffagiste</option>
+          </optgroup>
+          <optgroup label="Extérieur">
+            <option value="jardinier">Jardinier</option>
+            <option value="paysagiste">Paysagiste</option>
+          </optgroup>
+          <optgroup label="Restauration">
+            <option value="restaurant">Restaurant</option>
+            <option value="bar">Bar / Brasserie</option>
+            <option value="café">Café</option>
+            <option value="boulangerie">Boulangerie / Pâtisserie</option>
+            <option value="traiteur">Traiteur</option>
+          </optgroup>
+          <optgroup label="Commerce">
+            <option value="commerce de proximité">Commerce de proximité</option>
+            <option value="coiffeur">Coiffeur</option>
+            <option value="salon de beauté">Esthétique / Salon de beauté</option>
+            <option value="opticien">Opticien</option>
+            <option value="fleuriste">Fleuriste</option>
+          </optgroup>
+          <optgroup label="Services">
+            <option value="garage">Garage / Mécanicien</option>
+            <option value="agent immobilier">Agent immobilier</option>
+          </optgroup>
+          <optgroup label="Général">
+            <option value="artisan">Autre artisan</option>
+            <option value="auto-entrepreneur">Auto-entrepreneur</option>
+            <option value="commerçant">Commerçant</option>
+            <option value="autre">Autre (préciser dans la recherche)</option>
+          </optgroup>
         </select>
         <button class="run" id="searchBtn">Rechercher</button>
       </div>
