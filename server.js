@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import auditRouter from './src/routes/audit.js';
 import prospectsRouter from './src/routes/prospects.js';
+import prospectionRouter from './src/routes/prospecting.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/audit', auditRouter);
 app.use('/api/prospects', prospectsRouter);
+app.use('/api/prospecting', prospectionRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

@@ -56,7 +56,10 @@ function toSummary(p) {
     updatedAt: p.updatedAt,
     score: last ? last.scores.performance : null,
     auditCount: p.audits.length,
-    lastAuditDate: last ? last.date : null
+    lastAuditDate: last ? last.date : null,
+    categorie: p.categorie || null,
+    ville: p.ville || null,
+    source: p.source || 'manual',
   };
 }
 
@@ -91,7 +94,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { url, name, contact, audit, notes, nextContact } = req.body || {};
+    const { url, name, contact, audit, notes, nextContact, categorie, ville, source, place_id } = req.body || {};
     const normUrl = normalizeUrl(url);
     if (!normUrl) return res.status(400).json({ error: 'URL invalide ou manquante' });
     if (!audit) return res.status(400).json({ error: 'Audit manquant' });
@@ -105,6 +108,10 @@ router.post('/', async (req, res, next) => {
       status: 'a contacter',
       notes: capStr(notes, 4000) || null,
       nextContact: validDate(nextContact),
+      categorie: capStr(categorie, 100) || null,
+      ville: capStr(ville, 100) || null,
+      source: capStr(source, 50) || 'manual',
+      place_id: capStr(place_id, 200) || null,
       createdAt: stamp,
       updatedAt: stamp,
       audits: [{ id: crypto.randomUUID(), date: stamp, ...sanitizeAudit(audit) }]
