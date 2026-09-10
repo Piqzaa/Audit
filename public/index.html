@@ -19,6 +19,7 @@
 
   <div class="tabs">
     <button class="tab active" data-view="audit">Nouvel audit</button>
+    <button class="tab" data-view="search">Recherche</button>
     <button class="tab" data-view="history">Historique</button>
   </div>
 
@@ -100,6 +101,68 @@
   </div>
 
   <div id="clientReport" aria-hidden="true"></div>
+
+  <!-- ===== Recherche ===== -->
+  <div class="view" id="view-search">
+    <div class="search-form">
+      <div class="input-row">
+        <label class="sr-only" for="searchVille">Ville</label>
+        <input type="text" id="searchVille" placeholder="Lyon, Paris, Marseille..." required />
+        <label class="sr-only" for="searchCategorie">Catégorie</label>
+        <select id="searchCategorie">
+          <option value="">-- Catégorie --</option>
+          <option value="plombier">Plombier</option>
+          <option value="électricien">Électricien</option>
+          <option value="menuisier">Menuisier</option>
+          <option value="peintre en bâtiment">Peintre</option>
+          <option value="couvreur">Couvreur</option>
+          <option value="maçon">Maçon</option>
+          <option value="jardinier">Jardinier</option>
+          <option value="serrurier">Serrurier</option>
+          <option value="chauffagiste">Chauffagiste</option>
+          <option value="carreleur">Carreleur</option>
+          <option value="vitrailliste">Vitrailliste</option>
+          <option value="paysagiste">Paysagiste</option>
+          <option value="artisan">Autre artisan</option>
+          <option value="auto-entrepreneur">Auto-entrepreneur</option>
+          <option value="commerçant">Commerçant</option>
+          <option value="autre">Autre (préciser dans la recherche)</option>
+        </select>
+        <button class="run" id="searchBtn">Rechercher</button>
+      </div>
+      <div class="field-hint">Recherche des commerces et artisans via Google Places. Les sites trouvés sont automatiquement audités.</div>
+    </div>
+
+    <div class="status" id="searchStatus" style="display:none;">
+      <span class="dot"></span>
+      <span id="searchStatusText"></span>
+    </div>
+    <div class="error" id="searchErrorBox" role="alert"></div>
+
+    <div id="searchResults" style="display:none;">
+      <div class="batch-bar">
+        <span id="searchCount"></span>
+        <button id="selectAllBtn">Tout sélectionner</button>
+        <button id="deselectAllBtn">Tout désélectionner</button>
+        <button class="primary" id="saveBatchBtn">Ajouter la sélection aux prospects</button>
+      </div>
+
+      <div class="results-group">
+        <h3 class="group-title tag-no-site">Pas de site</h3>
+        <div class="results-list" id="resultsNoSite"></div>
+      </div>
+
+      <div class="results-group">
+        <h3 class="group-title tag-bad-score">Site à mauvais score</h3>
+        <div class="results-list" id="resultsBadScore"></div>
+      </div>
+
+      <div class="results-group">
+        <h3 class="group-title tag-good-score">Site correct</h3>
+        <div class="results-list" id="resultsGoodScore"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== Historique ===== -->
   <div class="view" id="view-history">

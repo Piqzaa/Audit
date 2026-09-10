@@ -869,6 +869,159 @@ footer {
 .cr-cat-list li.cr-cat-none { color: #2F7A4F; font-weight: 600; list-style: none; padding-left: 0; }
 .cr-cat-fig { color: #8F5D0D; font-family: var(--mono); font-size: 11px; }
 
+/* --- Recherche de prospects --- */
+.search-form { margin-bottom: 20px; }
+.search-form .input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: stretch;
+}
+.search-form input[type="text"] {
+  flex: 2;
+  height: 48px;
+  padding: 0 16px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 14px;
+  background: var(--paper-card);
+  color: var(--ink);
+}
+.search-form input[type="text"]:focus { outline: 3px solid var(--amber-light); }
+.search-form select {
+  flex: 1;
+  height: 48px;
+  padding: 0 12px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--sans);
+  font-size: 13px;
+  background: var(--paper-card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.search-form select:focus { outline: 3px solid var(--amber-light); }
+
+.batch-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.batch-bar span { flex: 1; color: var(--ink-light); }
+.batch-bar button {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.batch-bar button:hover { background: var(--amber-light); }
+.batch-bar button.primary { background: var(--ink); color: var(--paper); }
+.batch-bar button.primary:hover { background: var(--ink-light); }
+.batch-bar button:disabled { opacity: 0.5; cursor: wait; }
+
+.results-group { margin-bottom: 24px; }
+.group-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.group-title.tag-no-site { background: #fee2e2; color: #991b1b; }
+.group-title.tag-bad-score { background: #fef3cd; color: #856404; }
+.group-title.tag-good-score { background: #d1fae5; color: #065f46; }
+
+.results-list { display: grid; gap: 8px; }
+
+.result-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.result-card:hover { border-color: var(--ink-light); }
+.result-card.selected {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber);
+}
+.result-card input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--amber);
+}
+.result-info { flex: 1; min-width: 0; }
+.result-name { font-weight: 600; font-size: 14px; }
+.result-addr { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+.result-tel { font-size: 12px; color: var(--ink-light); margin-top: 1px; }
+.result-url {
+  font-size: 11px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.result-url a { color: var(--amber); text-decoration: none; }
+.result-url a:hover { text-decoration: underline; }
+.result-score { flex: 0 0 auto; text-align: center; min-width: 40px; }
+.pending-audit {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-light);
+  animation: pulse 1.5s infinite;
+}
+.add-single-btn {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.add-single-btn:hover { background: var(--ink); color: var(--paper); }
+
+#searchResults .empty {
+  padding: 20px 0;
+  color: var(--ink-light);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .search-form .input-row { flex-direction: column; }
+  .search-form input[type="text"],
+  .search-form select,
+  .search-form button.run { width: 100%; }
+  .result-card { flex-wrap: wrap; }
+  .batch-bar { flex-direction: column; align-items: stretch; }
+  .batch-bar button { width: 100%; }
+}
+
 @media print {
   html, body { height: auto; }
   body { padding: 0; margin: 0; background: white; }

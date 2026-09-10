@@ -12,6 +12,9 @@
   let currentProspects = [];
   let lastAudit = null;
   let activeView = 'audit';
+  let searchResults = [];
+  let auditQueueId = null;
+  let searchPolling = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -27,6 +30,7 @@
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
     if (view === 'history') loadHistory();
+    if (view === 'search') $('searchVille').focus();
   }
 
   async function api(path, opts = {}) {
@@ -324,6 +328,185 @@ const det = $('detail');
     }
   }
 
+  // --- Recherche de prospects ---
+  async function searchProspects() {
+    const ville = $('searchVille').value.trim();
+    const categorie = $('searchCategorie').value;
+    if (!ville) { $('searchVille').focus(); return; }
+    if (!categorie) { $('searchCategorie').focus(); return; }
+
+    $('searchBtn').disabled = true;
+    $('searchErrorBox').classList.remove('show');
+    $('searchResults').style.display = 'none';
+    $('searchStatus').style.display = 'flex';
+    $('searchStatusText').textContent = 'Recherche en cours...';
+
+    try {
+      const data = await api('/prospecting/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categorie, ville })
+      });
+
+      searchResults = data.results || [];
+      auditQueueId = data.auditQueueId;
+
+      renderSearchResults(searchResults);
+
+      if (auditQueueId) {
+        startAuditPolling();
+      }
+    } catch (err) {
+      $('searchErrorBox').textContent = err.message;
+      $('searchErrorBox').classList.add('show');
+    } finally {
+      $('searchBtn').disabled = false;
+      $('searchStatus').style.display = 'none';
+    }
+  }
+
+  function renderSearchResults(results) {
+    const el = $('searchResults');
+    el.style.display = 'block';
+
+    const noSite = results.filter(r => r.tag === 'no-site');
+    const badScore = results.filter(r => r.tag === 'to-audit' && r.audit && r.audit.scores && r.audit.scores.performance < 50);
+    const goodScore = results.filter(r => r.tag === 'to-audit' && r.audit && r.audit.scores && r.audit.scores.performance >= 50);
+    const pending = results.filter(r => r.tag === 'to-audit' && !r.audit);
+
+    const total = results.length;
+    const selectedCount = results.filter(r => r.selected).length;
+    $('searchCount').textContent = `${total} résultat${total > 1 ? 's' : ''} · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}`;
+
+    $('resultsNoSite').innerHTML = noSite.length
+      ? noSite.map(r => resultCardHtml(r)).join('')
+      : '<div class="empty">Aucun résultat</div>';
+
+    $('resultsBadScore').innerHTML = badScore.length
+      ? badScore.map(r => resultCardHtml(r)).join('')
+      : (pending.length ? '<div class="empty">Audit en cours...</div>' : '<div class="empty">Aucun résultat</div>');
+
+    $('resultsGoodScore').innerHTML = goodScore.length
+      ? goodScore.map(r => resultCardHtml(r)).join('')
+      : '<div class="empty">Aucun résultat</div>';
+
+    el.querySelectorAll('.result-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = parseInt(cb.dataset.idx, 10);
+        searchResults[idx].selected = cb.checked;
+        renderSearchResults(searchResults);
+      });
+    });
+
+    el.querySelectorAll('.add-single-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        saveSingleProspect(searchResults[idx]);
+      });
+    });
+  }
+
+  function resultCardHtml(r, idx) {
+    const score = r.audit?.scores?.performance;
+    const scoreHtml = score != null
+      ? `<span class="score-chip ${window.Report.scoreColor(score)}">${score}</span>`
+      : (r.tag === 'no-site' ? '<span class="tag tag-no-site">Pas de site</span>' : '<span class="pending-audit">Audit en cours...</span>');
+
+    return `
+      <div class="result-card ${r.selected ? 'selected' : ''}">
+        <input type="checkbox" class="result-checkbox" data-idx="${searchResults.indexOf(r)}" ${r.selected ? 'checked' : ''} />
+        <div class="result-info">
+          <div class="result-name">${window.Report.escapeHtml(r.nom || 'Sans nom')}</div>
+          <div class="result-addr">${window.Report.escapeHtml(r.adresse || '')}</div>
+          <div class="result-tel">${window.Report.escapeHtml(r.telephone || '')}</div>
+          ${r.websiteUri ? `<div class="result-url"><a href="${window.Report.escapeHtml(r.websiteUri)}" target="_blank" rel="noopener">${window.Report.escapeHtml(r.websiteUri)}</a></div>` : ''}
+        </div>
+        <div class="result-score">${scoreHtml}</div>
+        <button class="add-single-btn" data-idx="${searchResults.indexOf(r)}">+</button>
+      </div>
+    `;
+  }
+
+  function startAuditPolling() {
+    if (searchPolling) clearInterval(searchPolling);
+    searchPolling = setInterval(async () => {
+      try {
+        const progress = await api(`/prospecting/audit-progress/${auditQueueId}`);
+        if (progress.results) {
+          for (let i = 0; i < progress.results.length; i++) {
+            if (progress.results[i] && progress.results[i].audit) {
+              searchResults[i].audit = progress.results[i].audit;
+              searchResults[i].status = progress.results[i].status;
+            }
+          }
+          renderSearchResults(searchResults);
+        }
+        if (progress.done) {
+          clearInterval(searchPolling);
+          searchPolling = null;
+        }
+      } catch {
+        clearInterval(searchPolling);
+        searchPolling = null;
+      }
+    }, 2000);
+  }
+
+  async function saveSingleProspect(result) {
+    try {
+      await api('/prospecting/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospects: [{ ...result, categorie: $('searchCategorie').value, ville: $('searchVille').value.trim() }]
+        })
+      });
+      result.saved = true;
+      renderSearchResults(searchResults);
+    } catch (err) {
+      $('searchErrorBox').textContent = err.message;
+      $('searchErrorBox').classList.add('show');
+    }
+  }
+
+  async function saveBatchProspects() {
+    const selected = searchResults.filter(r => r.selected && !r.saved);
+    if (!selected.length) return;
+
+    $('saveBatchBtn').disabled = true;
+    try {
+      const enriched = selected.map(r => ({
+        ...r,
+        categorie: $('searchCategorie').value,
+        ville: $('searchVille').value.trim()
+      }));
+      const data = await api('/prospecting/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospects: enriched })
+      });
+      for (const r of selected) r.saved = true;
+      renderSearchResults(searchResults);
+      $('saveBatchBtn').textContent = `${data.saved} prospect${data.saved > 1 ? 's' : ''} ajouté${data.saved > 1 ? 's' : ''} ✓`;
+      setTimeout(() => { $('saveBatchBtn').textContent = 'Ajouter la sélection aux prospects'; }, 2000);
+    } catch (err) {
+      $('searchErrorBox').textContent = err.message;
+      $('searchErrorBox').classList.add('show');
+    } finally {
+      $('saveBatchBtn').disabled = false;
+    }
+  }
+
+  function selectAllResults() {
+    searchResults.forEach(r => { if (!r.saved) r.selected = true; });
+    renderSearchResults(searchResults);
+  }
+
+  function deselectAllResults() {
+    searchResults.forEach(r => { r.selected = false; });
+    renderSearchResults(searchResults);
+  }
+
 // --- Copier le résumé ---
   $('copyBtn').addEventListener('click', () => {
     if (!lastAudit) return;
@@ -347,4 +530,10 @@ const det = $('detail');
   $('runBtn').addEventListener('click', runAudit);
   $('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') runAudit(); });
   $('saveBtn').addEventListener('click', saveProspect);
+
+  $('searchBtn').addEventListener('click', searchProspects);
+  $('searchVille').addEventListener('keydown', e => { if (e.key === 'Enter') searchProspects(); });
+  $('selectAllBtn').addEventListener('click', selectAllResults);
+  $('deselectAllBtn').addEventListener('click', deselectAllResults);
+  $('saveBatchBtn').addEventListener('click', saveBatchProspects);
 })();
